@@ -1,0 +1,205 @@
+/**
+ * JavaCC template file created by SF JavaCC plugin 1.5.28+ wizard for JavaCC 1.5.0+
+ */options{  static = false;}PARSER_BEGIN(CexParser)
+
+package cexsearch.jj;
+import java.io.File;
+import java.io.BufferedReader;
+//import java.io.File;
+//import java.io.FileNotFoundException;
+import java.io.FileReader;
+//import java.io.IOException;
+
+public class CexParser{
+  static String cexfname0 = "C:\\tmp\\MTC_LIF\\COV-xxxx-xx-01\\lif-cov3.cex";
+  static String signature0 = "588839fda7aa7e452260e47bf8cc389a";  // of the method
+  static int offset0 = 0x9b; // of instruction within method
+
+  public String cexfname;
+  public String signature;
+  public int offset;
+  public boolean bFound;
+  public int lineno;
+  public int count0;
+  public int count1;
+  
+  private boolean bInside;
+
+  public static void main(String args [])
+  {
+    CexParser p = new CexParser(cexfname0, signature0, offset0);
+    p.parseCex();
+    
+    System.out.printf(
+        "Result for signature=%s, offset=%04x, cexfname=\"%s\": bfound=%d, lineno=%d, count0=%d, count1=%d\n",
+        p.signature, p.offset, p.cexfname, (p.bFound ? 1 : 0), p.lineno, p.count0, p.count1);
+  }
+
+  public CexParser (String cexfname, String signature, int offset)
+  {
+    this (System.in);
+    this.bInside = false;
+    this.cexfname = cexfname;
+    this.signature = signature;
+    this.offset = offset;
+    this.bFound = false;
+    this.lineno = 0;
+    this.count0 = 0;
+    this.count1 = 0;
+  }
+  
+  public void parseCex()  {
+      try      {//	    System.out.println("Reading from \"" + this.cexfname + "\"");
+	    BufferedReader f = new BufferedReader (new FileReader(new File(this.cexfname)));
+    	this.ReInit (f);
+    	
+        switch (cex_file())        {          case 0 : //	          System.out.println("OK.");          break;          default :           break;        }      }      catch (Exception e)      {        System.out.printf("Parse NOK for \"%s\".\n", this.cexfname);        System.out.println(e.getMessage());      }      catch (Error e)      {        System.out.printf("Oops for \"%s\".\n", this.cexfname);
+        System.out.println(e.getMessage());      }
+  }}PARSER_END(CexParser)
+
+< * > TOKEN :
+{  ","
+}
+< DEFAULT > TOKEN :
+{
+  < EOL : ["\n","\r"](["\n","\r"])? >
+| < #DIGIT : [ "0"-"9" ] >
+| < #HEXDIGIT : [ "0"-"9", "a"-"f" ] >
+| < HEXDIGIT2 : < HEXDIGIT > < HEXDIGIT > >
+| < HEXDIGIT4 : < HEXDIGIT2 > < HEXDIGIT2 > >
+| < HEXDIGIT8 : < HEXDIGIT4 > < HEXDIGIT4 > >
+| < HEXDIGIT16 : < HEXDIGIT8 > < HEXDIGIT8 > >
+| < HEXDIGIT32 : < HEXDIGIT16 > < HEXDIGIT16 > >
+}
+
+< RESTOFLINE > TOKEN :
+{
+  < STRING : (~["\n","\r"])+ < EOL >> : DEFAULT
+}
+
+< FLEXNUM > TOKEN :
+{
+  < CONSTANT : (< DIGIT >)+ >
+}
+
+void h_line() :
+{ }
+{
+  "H," { token_source.SwitchTo(FLEXNUM); } < CONSTANT > "," < CONSTANT > ","{ token_source.SwitchTo(RESTOFLINE); } < STRING >
+}
+
+void Database_line() :
+{ }
+{
+  "!,Database," { token_source.SwitchTo(RESTOFLINE); } < STRING >
+}
+
+void Analysis_line() :
+{ }
+{
+  "!,Analysis," { token_source.SwitchTo(RESTOFLINE); } < STRING >
+}
+
+void b_line() :
+{
+  String signature_b_line;
+  bInside = false;
+}
+{
+  "B,"
+  < HEXDIGIT32 >
+  {
+    signature_b_line = token.image;
+    if (signature_b_line.equals(this.signature))
+    {
+      this.bInside = true;
+    }
+  }
+  ","  { token_source.SwitchTo(FLEXNUM); }
+  < CONSTANT >
+  ","
+  < CONSTANT >
+  "," { token_source.SwitchTo(RESTOFLINE); }
+   < STRING >
+}
+
+void p_line() :
+{
+  int offset_p_line = 0;
+}
+{
+  "P,"
+  < HEXDIGIT2 > ","
+  < HEXDIGIT2 > ","
+  < HEXDIGIT2 > ","
+  < HEXDIGIT8 >
+  {
+    if (bInside)
+    {
+      offset_p_line = Integer.parseInt(token.image, 16);
+    }
+  }
+   ","
+  < HEXDIGIT8 >
+  {
+      if (bInside && (offset_p_line == this.offset))
+      {
+        this.count0 = Integer.parseInt(token.image, 16);
+      }
+  }
+  ","
+  < HEXDIGIT8 >
+  {
+      if (bInside && (offset_p_line == this.offset))
+      {
+        this.count1 = Integer.parseInt(token.image, 16);
+      }
+  }
+  <EOL >
+  {
+      if (bInside && (offset_p_line == this.offset))
+      {
+        this.bFound = true;
+        this.lineno = token.beginLine; 
+      }
+  }
+  
+}
+
+void c_line() :
+{ }
+{
+  "C," < HEXDIGIT8 > "," < HEXDIGIT8 > "," { token_source.SwitchTo(RESTOFLINE); }  < STRING >
+}
+
+void final_line() :
+{ }
+{
+  "!,END OF EXPORT FILE" (<  EOL >)*
+}
+
+void header_section() :
+{ }
+{
+  h_line() ( Database_line() | Analysis_line() )*
+}
+
+void b_section() :
+{ }
+{
+  b_line() ( p_line() )*  ( c_line() )*
+}
+
+int cex_file() :
+{ }
+{
+  header_section()
+  (     b_section()
+   )*
+  final_line()
+  {
+    return 0;
+  }
+}
+
+

@@ -1,0 +1,361 @@
+/**
+ * JavaCC template file created by SF JavaCC plugin 1.5.28+ wizard for JavaCC 1.5.0+
+ */options{  static = false;}PARSER_BEGIN(CexParser2)
+package cextoolbox.jj;
+
+import java.io.File;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.PrintStream;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.NavigableSet;
+import java.util.TreeSet;
+import cextoolbox.*;
+
+public class CexParser2{
+//  static String cexfname0 = "C:\\tmp\\MTC_LIF\\COV-xxxx-xx-01\\lif-cov3.cex";
+//  static String cexfname1 = "C:\\tmp\\MTC_LIF\\COV-xxxx-xx-01\\lif-cov3.c0x";
+  static String cexfname0 = "C:\\tmp\\MTC_LIF\\TGMT_R3_SwCompTstRep_WCU_LIF_Embedded01-C2\\Coverage\\code_coverage_R3_0_7.cex";
+  static String cexfname1 = "C:\\tmp\\MTC_LIF\\TGMT_R3_SwCompTstRep_WCU_LIF_Embedded01-C2\\Coverage\\code_coverage_R3_0_7.c0x";
+
+  public String cexfname;
+  public NavigableSet<JBLine> btable;  // B-sections sorted by name
+  public List<JBLine> blist;  // B-sections in order of occurence
+  JBLine curbline;
+  public List<JHeaderFooterLine> header;  // H-lines in order of occurence
+  public List<JHeaderFooterLine> footer;  // footer-lines in order of occurence
+  public List<JHeaderFooterLine> curheaderfooter;  // which list to add Other_lines, one of header or footer
+  
+  public static void main(String args [])
+  {
+    CexParser2 p_old = new CexParser2(cexfname0);
+    p_old.parseCex();
+    p_old.writeCex(cexfname1);
+//    CexParser2 p_new = new CexParser2(cexfname1);
+//    p_new.parseCex();
+
+//    p_new.merge (p_old);
+//    p_new.write (cexfname2);
+    
+  }
+
+  public CexParser2 (String cexfname)
+  {
+    this (System.in);
+    this.cexfname = cexfname;
+    btable = new TreeSet<JBLine>();
+    blist = new LinkedList<JBLine>();
+    header = new LinkedList<JHeaderFooterLine>();
+    footer = new LinkedList<JHeaderFooterLine>();
+  }
+  
+  public CexFile parseCex()  {
+      try      {//	    System.out.println("Reading from \"" + this.cexfname + "\"");
+	    BufferedReader f = new BufferedReader (new FileReader(new File(this.cexfname)));
+    	this.ReInit (f);
+    	
+        switch (cex_file())        {          case 0 : //	          System.out.println("OK.");
+          break;          default :           break;        }
+      }      catch (Exception e)      {        System.out.printf("Parse NOK for \"%s\".\n", this.cexfname);        System.out.println(e.getMessage());      }      catch (Error e)      {        System.out.printf("Oops for \"%s\".\n", this.cexfname);
+        System.out.println(e.getMessage());      }
+      
+      return new CexFile (this.cexfname, header, blist, btable, footer);
+  }
+  public void writeCex (String outfname)
+  {
+      try { 
+		PrintStream outf = new PrintStream (outfname);
+	
+		Iterator<JHeaderFooterLine> iheader = header.iterator();
+		while(iheader.hasNext())
+		{
+			iheader.next().write(outf);
+		}
+		
+		Iterator<JBLine> bi = blist.iterator();
+		while(bi.hasNext())
+		{
+			bi.next().write(outf);
+		}
+
+		Iterator<JHeaderFooterLine> ifooter = footer.iterator();
+		while(ifooter.hasNext())
+		{
+			ifooter.next().write(outf);
+		}
+		
+		outf.close();
+
+	  }
+      catch (Exception e)
+      {
+        System.out.printf("Write NOK for \"%s\".\n", outfname);
+        System.out.println(e.getMessage());
+      }
+  }
+}PARSER_END(CexParser2)
+
+< * > TOKEN :
+{  ","
+}
+< DEFAULT > TOKEN :
+{
+  < EOL : ["\n","\r"](["\n","\r"])? >
+| < #DIGIT : [ "0"-"9" ] >
+| < #HEXDIGIT : [ "0"-"9", "a"-"f" ] >
+| < HEXDIGIT2 : < HEXDIGIT > < HEXDIGIT > >
+| < HEXDIGIT4 : < HEXDIGIT2 > < HEXDIGIT2 > >
+| < HEXDIGIT8 : < HEXDIGIT4 > < HEXDIGIT4 > >
+| < HEXDIGIT16 : < HEXDIGIT8 > < HEXDIGIT8 > >
+| < HEXDIGIT32 : < HEXDIGIT16 > < HEXDIGIT16 > >
+}
+
+< RESTOFLINE > TOKEN :
+{
+  < STRING : (~["\n","\r"])+ < EOL >> : DEFAULT
+}
+
+< FLEXNUM > TOKEN :
+{
+  < CONSTANT : (< DIGIT >)+ >
+}
+
+void h_line() :
+{
+  String val;
+  String text;
+  JHLine hline = new JHLine();
+}
+{
+  "H," { token_source.SwitchTo(FLEXNUM); }
+  < CONSTANT >
+  {
+    val = token.image;
+    hline.count0 = Integer.parseInt(val, 10);
+  }
+  ","
+  < CONSTANT >
+  {
+    val = token.image;
+    hline.count1 = Integer.parseInt(val, 10);
+  }
+  ","{ token_source.SwitchTo(RESTOFLINE); }
+  < STRING >
+  {
+    text = token.image;
+    hline.text = text.trim();
+    header.add (hline);
+  }
+}
+
+void Database_line() :
+{
+  String text;
+  JStringLine sline = new JStringLine("Database");
+}
+{
+  "!,Database," { token_source.SwitchTo(RESTOFLINE); }
+  < STRING >
+  {
+    text = token.image;
+    sline.text = text.trim();
+    header.add (sline);
+  }
+}
+
+void Analysis_line() :
+{
+  String text;
+  JStringLine sline = new JStringLine("Analysis");
+}
+{
+  "!,Analysis," { token_source.SwitchTo(RESTOFLINE); }
+  < STRING >
+  {
+    text = token.image;
+    sline.text = text.trim();
+    header.add (sline);
+  }
+}
+
+void Merge_line() :
+{
+  String text;
+  JStringLine sline = new JStringLine("Merge");
+}
+{
+  "!,Merge," { token_source.SwitchTo(RESTOFLINE); }
+  < STRING >
+  {
+    text = token.image;
+    sline.text = text.trim();
+    header.add (sline);
+  }
+}
+
+void Other_line() :
+{
+  String text;
+  JStringLine sline = new JStringLine();
+}
+{
+  "!," { token_source.SwitchTo(RESTOFLINE); }
+  < STRING >
+  {
+    text = token.image;
+    sline.text = text.trim();
+    curheaderfooter.add (sline);
+  }
+}
+
+void b_line() :
+{
+  String val;
+  String name;
+  String signature;
+  curbline = new JBLine();
+}
+{
+  "B,"
+  < HEXDIGIT32 >
+  {
+    signature = token.image;
+    curbline.signature = signature;
+  }
+  ","  { token_source.SwitchTo(FLEXNUM); }
+  < CONSTANT >
+  {
+    val = token.image;
+    curbline.psize = Integer.parseInt(val, 10);
+  }
+  ","
+  < CONSTANT >
+  {
+    val = token.image;
+    curbline.csize = Integer.parseInt(val, 10);
+  }
+  "," { token_source.SwitchTo(RESTOFLINE); }
+   < STRING >
+  {
+    name = token.image;
+    String name2 = name.trim();
+    int idx = name2.indexOf('(');
+    curbline.name = (idx < 0 ? name2 :  name2.substring(0, idx));
+    btable.add (curbline);
+    blist.add(curbline);
+  }
+}
+
+void p_line() :
+{
+  String val;
+  JPLine pline = new JPLine();
+}
+{
+  "P,"
+  < HEXDIGIT2 >
+  {
+    val = token.image;
+    pline.flag0 = Integer.parseInt(val, 16);
+  }
+  ","
+  < HEXDIGIT2 >
+  {
+    val = token.image;
+    pline.flag1 = Integer.parseInt(val, 16);
+  }
+  ","
+  < HEXDIGIT2 >
+  {
+    val = token.image;
+    pline.flag2 = Integer.parseInt(val, 16);
+  }
+  ","
+  < HEXDIGIT8 >
+  {
+    val = token.image;
+    pline.offset = Integer.parseInt(val, 16);
+  }
+  ","
+  < HEXDIGIT8 >
+  {
+    val = token.image;
+    pline.count0 = Integer.parseInt(val, 16);
+  }
+  ","
+  < HEXDIGIT8 >
+  {
+    val = token.image;
+    pline.count1 = Integer.parseInt(val, 16);
+  }
+  <EOL >
+  {
+    curbline.plines.add(pline);
+  }
+}
+
+void c_line() :
+{
+  String val;
+  String comment;
+  JCLine cline = new JCLine();
+}
+{
+  "C,"
+  < HEXDIGIT8 >
+  {
+    val = token.image;
+    cline.offset0 = Integer.parseInt(val, 16);
+  }
+  ","
+  < HEXDIGIT8 >
+  {
+    val = token.image;
+    cline.offset1 = Integer.parseInt(val, 16);
+  }
+  "," { token_source.SwitchTo(RESTOFLINE); }
+  < STRING >
+  {
+    comment = token.image;
+    cline.comment = comment.trim();
+    curbline.clines.add(cline);
+  }
+}
+
+void header_section() :
+{
+  curheaderfooter = header;
+}
+{
+  h_line() ( Database_line() | Analysis_line() | Merge_line() | Other_line())*
+}
+
+void b_section() :
+{ }
+{
+  b_line() ( p_line() )*  ( c_line() )*
+}
+
+void footer_section() :
+{
+  curheaderfooter = footer;
+}
+{
+  (Other_line())*
+}
+
+int cex_file() :
+{ }
+{
+  header_section()
+  (     b_section()
+  )+
+  footer_section()
+  {
+    return 0;
+  }
+}
+
+
