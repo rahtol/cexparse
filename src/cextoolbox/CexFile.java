@@ -22,6 +22,7 @@ public class CexFile {
 		  this.blist = blist;
 		  this.btable = btable;
 		  this.footer = footer;
+		  for (JBLine b : blist) b.buildStmtIndex();
 	  }
 
 	  public void writeCex (String outfname)
@@ -141,6 +142,8 @@ public class CexFile {
 		  int methodCnt = 0;
 		  int existingMethodCnt = 0;
 		  int matchingLinesCnt = 0;
+		  int matchingBySourceStmtsCnt = 0;
+		  int noMatchLinesCnt = 0;
 		  int mergeCompleteCnt = 0;
 
 		  try 
@@ -155,6 +158,7 @@ public class CexFile {
 				  JBLine blineref = refCex.btable.ceiling(bline);
 				  Boolean existingMethod = (blineref==null ? false : bline.name.equals(blineref.name));
 				  Boolean matchingLines = false;
+				  boolean matchingBySourceStmts = false;
 				  Boolean mergeComplete = false;
 
 				  if (existingMethod)	
@@ -167,17 +171,23 @@ public class CexFile {
 						  mergeComplete = bline.mergeComments(blineref);
 						  if (mergeComplete) mergeCompleteCnt++;
 					  }
-				  }
-				  
-				  
-				  if (!matchingLines) {
-					  // create default comments in order to achieve 100% in created CEX
-					  // do so by adding dummy comments that can be post-precessed manually
-					  bline.mergeComments(blineWithoutComments);
+					  else {
+						  matchingBySourceStmts = bline.calcMatchingSourceStmts (blineref);
+						  if (matchingBySourceStmts) {
+							  matchingBySourceStmtsCnt++;
+							  bline.mergeCommentsByStmt(blineref);
+						  }
+						  else {
+							  // create default comments in order to achieve 100% in created CEX
+							  // do so by adding dummy comments that can be post-processed manually
+							  noMatchLinesCnt ++;
+							  bline.mergeComments(blineWithoutComments);
+						  }
+					  }
 				  }
 			  }
 
-			  System.out.printf("mergeComments: %s %s methodCnt=%d existingMethodCnt=%d matchingLinesCnt=%d mergeCompleteCnt=%d\n", this.cexfname, refCex.cexfname, methodCnt, existingMethodCnt, matchingLinesCnt, mergeCompleteCnt);
+			  System.out.printf("mergeComments:\n\t%s\n\t%s\n\tmethodCnt=%d existingMethodCnt=%d matchingLinesCnt=%d mergeCompleteCnt=%d matchingBySourceStmtsCnt=%d noMatchLinesCnt=%d\n", this.cexfname, refCex.cexfname, methodCnt, existingMethodCnt, matchingLinesCnt, mergeCompleteCnt, matchingBySourceStmtsCnt, noMatchLinesCnt);
 
 		  }
 		  catch (Exception e)

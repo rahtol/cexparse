@@ -10,6 +10,11 @@ public class JPLine implements Comparable<JPLine> {
 	public int offset;
 	public int count0;
 	public int count1;
+	public static String covermode = "C1"; // "C1" or "C2" are legal values, anything different interpreted as C1 coverage
+	public boolean startOfStmt;
+	public int len; // code length in bytes, calculated by subtracting offset of consecutive plines; always zero for last pline in bline
+	
+	static JPLine plinemax = null;
 
 	public int compareTo(JPLine o)
 	{
@@ -30,6 +35,8 @@ public class JPLine implements Comparable<JPLine> {
 		offset = 0;
 		count0 = 0;
 		count1 = 0;
+		startOfStmt = false;
+		len = 0;
 	}
 	
 	public void write (PrintStream outf)
@@ -39,8 +46,21 @@ public class JPLine implements Comparable<JPLine> {
 
 	public boolean covered() 
 	{
-//		return (flag0 & 0x20) != 0;  // C1 coverage version
-		return (count0 > 0) && (((flag0 & 0x06) == 0x02) || (count1 > 0));  // C2 coverage version
+		if (covermode.equalsIgnoreCase("C2")) {
+			return (count0 > 0) && (((flag0 & 0x06) == 0x02) || (count1 > 0));  // C2 coverage version
+		}
+		else {
+			return (flag0 & 0x20) != 0;  // C1 coverage version
+		}
+	}
+	
+	public static JPLine max ()
+	{
+		if (plinemax == null) {
+			plinemax = new JPLine ();
+			plinemax.offset = Integer.MAX_VALUE;
+		}
+		return plinemax;
 	}
 
 }

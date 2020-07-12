@@ -1,6 +1,6 @@
 /**
  * JavaCC template file created by SF JavaCC plugin 1.5.28+ wizard for JavaCC 1.5.0+
- */options{  static = false;}PARSER_BEGIN(CexParser2)
+ */options{  static = false;}PARSER_BEGIN(CexParser2)
 package cextoolbox.jj;
 
 import java.io.File;
@@ -27,6 +27,7 @@ public class CexParser2{
   public List<JHeaderFooterLine> header;  // H-lines in order of occurence
   public List<JHeaderFooterLine> footer;  // footer-lines in order of occurence
   public List<JHeaderFooterLine> curheaderfooter;  // which list to add Other_lines, one of header or footer
+  public boolean parseOk;
   
   public static void main(String args [])
   {
@@ -49,6 +50,7 @@ public class CexParser2{
     blist = new LinkedList<JBLine>();
     header = new LinkedList<JHeaderFooterLine>();
     footer = new LinkedList<JHeaderFooterLine>();
+    parseOk = false;
   }
   
   public CexFile parseCex()  {
@@ -57,12 +59,13 @@ public class CexParser2{
     	this.ReInit (f);
     	
         switch (cex_file())        {          case 0 : //	          System.out.println("OK.");
+			parseOk = true;
           break;          default :           break;        }
       }      catch (Exception e)      {        System.out.printf("Parse NOK for \"%s\".\n", this.cexfname);        System.out.println(e.getMessage());      }      catch (Error e)      {        System.out.printf("Oops for \"%s\".\n", this.cexfname);
         System.out.println(e.getMessage());      }
       
       return new CexFile (this.cexfname, header, blist, btable, footer);
-  }
+  }
   public void writeCex (String outfname)
   {
       try { 
@@ -99,7 +102,7 @@ public class CexParser2{
 
 < * > TOKEN :
 {  ","
-}
+}
 < DEFAULT > TOKEN :
 {
   < EOL : ["\n","\r"](["\n","\r"])? >
@@ -241,7 +244,7 @@ void b_line() :
   {
     name = token.image;
     String name2 = name.trim();
-    int idx = name2.indexOf('(');
+    int idx = -1; // name2.indexOf('(');
     curbline.name = (idx < 0 ? name2 :  name2.substring(0, idx));
     btable.add (curbline);
     blist.add(curbline);

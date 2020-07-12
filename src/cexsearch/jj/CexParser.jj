@@ -2,7 +2,7 @@
  * JavaCC template file created by SF JavaCC plugin 1.5.28+ wizard for JavaCC 1.5.0+
  */options{  static = false;}PARSER_BEGIN(CexParser)
 
-package cexsearch.jj;
+package cexsearch.jj;
 import java.io.File;
 import java.io.BufferedReader;
 //import java.io.File;
@@ -59,7 +59,7 @@ public class CexParser{
 
 < * > TOKEN :
 {  ","
-}
+}
 < DEFAULT > TOKEN :
 {
   < EOL : ["\n","\r"](["\n","\r"])? >
